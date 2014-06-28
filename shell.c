@@ -1,13 +1,49 @@
 
 #include <stdio.h>
 #include <string.h>
-
+#include <termios.h>
+#include <stdio.h>
 
 
 #include "shell.h"
 
 
 #define ARRAY_SIZE(a)	(sizeof(a)/sizeof(a[0]))
+
+//Take controll over the keyboard and prevent echo whitespace (for example tab)
+static struct termios old, new;
+
+/* Initialize new terminal i/o settings */
+void initTermios(int echo) 
+{
+  tcgetattr(0, &old); /* grab old terminal i/o settings */
+  new = old; /* make new settings same as old settings */
+  new.c_lflag &= ~ICANON; /* disable buffered i/o */
+  new.c_lflag &= echo ? ECHO : ~ECHO; /* set echo mode */
+  tcsetattr(0, TCSANOW, &new); /* use these new terminal i/o settings now */
+}
+
+/* Restore old terminal i/o settings */
+void resetTermios(void) 
+{
+  tcsetattr(0, TCSANOW, &old);
+}
+
+/* Read 1 character - echo defines echo mode */
+char getch_(int echo) 
+{
+  char ch;
+  initTermios(echo);
+  ch = getchar();
+  resetTermios();
+  return ch;
+}
+
+/* Read 1 character without echo */
+char get_ch(void) 
+{
+  return getch_(0);
+}
 
 
 static struct {
@@ -27,13 +63,12 @@ static void shell_help(int argc, char **argv);
 
 static struct shell_command commands[] = {
 
-	{ "help",	shell_help },
+	{ "help",	shell_help }	
 
 };
 
 
 static void prompt(void)
-
 {
 	printf(SHELL_PROMPT_STRING);
 
@@ -286,13 +321,16 @@ static void shell_task(void *params)
 
 	prompt();
 
+	
 
 	while (1) {
 
 		int c;
 
 
-		c = getchar();
+		//c = getchar();
+		c=get_ch();
+
 		if (c != EOF) {
 
 			handle_input((char)c);
@@ -327,3 +365,5 @@ static void shell_help(int argc, char **argv)
 
 	}
 }
+
+
