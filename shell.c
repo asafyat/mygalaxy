@@ -18,6 +18,7 @@ void initTermios(int echo)
 {
   //Elad comment 
   printf("hello world\n");
+
   tcgetattr(0, &old); /* grab old terminal i/o settings */
   new = old; /* make new settings same as old settings */
   new.c_lflag &= ~ICANON; /* disable buffered i/o */
